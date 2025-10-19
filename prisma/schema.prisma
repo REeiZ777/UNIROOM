@@ -1,0 +1,57 @@
+// Prisma schema for UNIROOM booking platform
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  reservations Reservation[]
+}
+
+model Room {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  capacity    Int?
+  location    String?
+  building    String?
+  category    String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  reservations Reservation[]
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  title     String
+  objective String   @default("Autre")
+  participantGroup String?
+  date      DateTime
+  startTime DateTime
+  endTime   DateTime
+  note      String?
+  roomId    String
+  userId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roomId, date])
+  @@index([roomId, date, startTime])
+  @@unique([roomId, date, startTime, endTime, title])
+}
