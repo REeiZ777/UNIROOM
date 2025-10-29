@@ -159,7 +159,7 @@ export function ReservationForm({
   const isEdit = mode === "edit";
 
   const form = useForm<ReservationInput>({
-    resolver: zodResolver<ReservationInput, undefined, ReservationInput>(ReservationInputSchema),
+    resolver: zodResolver(ReservationInputSchema),
     defaultValues,
   });
 

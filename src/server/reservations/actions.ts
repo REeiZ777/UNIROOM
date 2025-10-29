@@ -9,6 +9,7 @@ import { enforceRateLimit, RateLimitError } from "@/lib/rate-limit";
 import {
   ReservationInput,
   ReservationInputSchema,
+  ReservationPayload,
   sanitizeReservationInput,
 } from "@/lib/validation";
 import { getSession } from "@/server/auth/session";
@@ -41,7 +42,7 @@ function extractFirstIssue(
   return result.error.issues[0]?.message ?? messages.invalidPayload;
 }
 
-function buildStoredDates(data: ReservationInput) {
+function buildStoredDates(data: ReservationPayload) {
   const zone = DEFAULT_TIME_ZONE;
   return {
     day: combineDateAndTime(data.date, "00:00", zone),

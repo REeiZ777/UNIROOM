@@ -27,8 +27,7 @@ const messages = {
 } as const;
 
 const TitleSchema = z
-  .string()
-  .optional()
+  .union([z.string(), z.undefined()])
   .transform((value) => (typeof value === "string" ? value.trim() : ""))
   .refine(
     (value) => value.length <= 80,
@@ -162,16 +161,17 @@ export const ReservationInputSchema = z
     }
   });
 
-export type ReservationInput = z.infer<typeof ReservationInputSchema>;
+export type ReservationInput = z.input<typeof ReservationInputSchema>;
+export type ReservationPayload = z.output<typeof ReservationInputSchema>;
 
 function sanitizeText(value: string) {
   return value.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export function sanitizeReservationInput(
-  input: ReservationInput,
-): ReservationInput {
-  let title = sanitizeText(input.title);
+  input: ReservationPayload | ReservationInput,
+): ReservationPayload {
+  let title = sanitizeText(input.title ?? "");
   if (title.length === 0) {
     title = "";
   }
