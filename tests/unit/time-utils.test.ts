@@ -45,7 +45,7 @@ describe("time utilities", () => {
 
   it("checks if a date is within opening hours", () => {
     const inside = combineDateAndTime("2025-01-02", "12:00", zone);
-    const before = combineDateAndTime("2025-01-02", "06:30", zone);
+    const before = combineDateAndTime("2025-01-02", "07:30", zone);
     const after = combineDateAndTime("2025-01-02", "20:30", zone);
 
     expect(isWithinOpeningHours(inside, zone)).toBe(true);

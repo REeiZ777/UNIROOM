@@ -2,8 +2,9 @@ import { addDays, parseISO, startOfWeek } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { notFound } from "next/navigation";
 
-import { combineDateAndTime } from "@/lib/time";
 import { resolveDepartmentFromGroup } from "@/lib/departments";
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
+import { combineDateAndTime } from "@/lib/time";
 import { prisma } from "@/server/db/client";
 
 import { RoomViewContent } from "./room-view-content";
@@ -84,7 +85,7 @@ export default async function RoomPage({
   params,
   searchParams = {},
 }: RoomPageProps) {
-  const [room, rooms] = await Promise.all([
+  const [room, roomsRaw] = await Promise.all([
     prisma.room.findUnique({
       where: { id: params.roomId },
       select: {
@@ -101,6 +102,8 @@ export default async function RoomPage({
       select: { id: true, name: true },
     }),
   ]);
+
+  const rooms = sortRoomsByDisplayOrder(roomsRaw);
 
   if (!room) {
     notFound();

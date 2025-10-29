@@ -4,6 +4,7 @@ import { useEffect, useMemo, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
+  OPENING_HOURS,
   SLOT_DURATION_MINUTES,
   combineDateAndTime,
   generateSlots,
@@ -36,7 +37,10 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -45,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { CalendarIcon } from "lucide-react";
 import { addMinutes } from "date-fns";
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
 type ReservationMutationResult = Awaited<ReturnType<typeof createReservation>>;
 
 type ReservationFormMode = "create" | "edit";
@@ -80,24 +85,67 @@ const uiStrings = {
 } as const;
 
 const objectivePresets = ["Cours", "Examen", "Reunion", "Conference"] as const;
-const groupPresets = [
-  "L1-SIL/SIRT",
-  "L2-SIL",
-  "L2-SIRT",
-  "L1-DROIT",
-  "L2-DROIT",
-  "L3-DROIT",
-  "L1-AGRO",
-  "L2-AGRO",
-  "L1 Agro bachelor",
-  "L2 Agro bachelor",
-  "L1-SEG",
-  "L2-SEG",
-  "L3-SEG",
-  "M1-MOP",
-  "M2-MOP",
-  "Personne externe",
+const groupPresetGroups = [
+  {
+    label: "Departement GI",
+    options: [
+      "L1 SIL/SIRT",
+      "L2 SIL/SIRT",
+      "L2 SIL",
+      "L2 SIRT",
+      "L3 SIL/SIRT",
+      "L3 SIL",
+      "L3 SIRT",
+    ],
+  },
+  {
+    label: "Departement AGRO",
+    options: ["L1 Agro bachelor", "L2 Agro bachelor", "L3 Agro bachelor"],
+  },
+  {
+    label: "Departement SEG",
+    options: [
+      "L1 Economie",
+      "L2 Economie",
+      "L3 Economie",
+      "L1 Comptabilite & Finance",
+      "L2 Comptabilite & Finance",
+      "L3 Comptabilite & Finance",
+      "L1 MOP",
+      "L2 MOP",
+      "L3 MOP",
+      "M1 ES",
+      "M1 FBA",
+      "M1 GRSE",
+      "M1 MOP",
+      "M2 ES",
+      "M2 EEDD",
+      "M2 FBA",
+      "M2 MOP",
+    ],
+  },
+  {
+    label: "Departement SJPA",
+    options: [
+      "L1 Droit & Ethique",
+      "L2 Droit & Ethique",
+      "L3 Droit Prive",
+      "L3 Droit Public",
+      "M1 Droit des affaires",
+      "M1 Droit Prive",
+      "M1 Droit Public",
+      "M1 DHAH",
+      "M1 RI & DIPL",
+      "M2 Droit des affaires",
+      "M2 DHAH",
+    ],
+  },
+  {
+    label: "Autres",
+    options: ["Personne externe"],
+  },
 ] as const;
+const groupPresets = groupPresetGroups.flatMap((group) => [...group.options]);
 
 export function ReservationForm({
   rooms,
@@ -123,6 +171,10 @@ export function ReservationForm({
   const watchedStart = form.watch("start");
   const watchedObjective = form.watch("objective");
   const watchedGroup = form.watch("participantGroup");
+  const roomsSorted = useMemo(
+    () => sortRoomsByDisplayOrder(rooms),
+    [rooms],
+  );
 
   const objectiveSelectValue = useMemo(() => {
     if (!watchedObjective) {
@@ -161,7 +213,14 @@ export function ReservationForm({
     const startIndex = slotOptions.findIndex(
       (option) => option.value === watchedStart,
     );
-    return slotOptions.slice(startIndex + 1);
+    const available =
+      startIndex >= 0 ? slotOptions.slice(startIndex + 1) : slotOptions;
+    const endOptionExists = available.some(
+      (option) => option.value === OPENING_HOURS.end,
+    );
+    return endOptionExists
+      ? available
+      : [...available, { value: OPENING_HOURS.end, label: OPENING_HOURS.end }];
   }, [slotOptions, watchedStart]);
 
   function setEndAfterStart(startValue: string) {
@@ -238,11 +297,11 @@ export function ReservationForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {rooms.map((room) => (
-                    <SelectItem key={room.id} value={room.id}>
-                      {room.name}
-                    </SelectItem>
-                  ))}
+                    {roomsSorted.map((room) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        {room.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -250,7 +309,7 @@ export function ReservationForm({
           )}
         />
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <FormField
             control={form.control}
             name="date"
@@ -433,10 +492,20 @@ export function ReservationForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {groupPresets.map((preset) => (
-                      <SelectItem key={preset} value={preset}>
-                        {preset}
-                      </SelectItem>
+                    {groupPresetGroups.map((group, index) => (
+                      <SelectGroup key={group.label}>
+                        <SelectLabel className="text-xs font-semibold text-muted-foreground/80">
+                          {group.label}
+                        </SelectLabel>
+                        {group.options.map((preset) => (
+                          <SelectItem key={preset} value={preset}>
+                            {preset}
+                          </SelectItem>
+                        ))}
+                        {index < groupPresetGroups.length - 1 && (
+                          <SelectSeparator className="opacity-30" />
+                        )}
+                      </SelectGroup>
                     ))}
                     <SelectItem value="custom">Autre</SelectItem>
                   </SelectContent>
@@ -462,7 +531,7 @@ export function ReservationForm({
             <FormItem>
               <FormLabel>{uiStrings.titleLabel}</FormLabel>
               <FormControl>
-                <Input {...field} data-testid="input-title" />
+                <Input {...field} data-testid="input-title" placeholder="Optionnel" />
               </FormControl>
               <FormMessage />
             </FormItem>

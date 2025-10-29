@@ -28,9 +28,12 @@ const messages = {
 
 const TitleSchema = z
   .string()
-  .trim()
-  .min(1, "Le titre est requis.")
-  .max(80, "Le titre ne peut depasser 80 caracteres.");
+  .optional()
+  .transform((value) => (typeof value === "string" ? value.trim() : ""))
+  .refine(
+    (value) => value.length <= 80,
+    "Le titre ne peut depasser 80 caracteres.",
+  );
 
 const NoteSchema = z
   .string()
@@ -168,9 +171,9 @@ function sanitizeText(value: string) {
 export function sanitizeReservationInput(
   input: ReservationInput,
 ): ReservationInput {
-  const title = sanitizeText(input.title);
-  if (!title.length) {
-    throw new Error("Le titre ne peut pas Ãªtre vide.");
+  let title = sanitizeText(input.title);
+  if (title.length === 0) {
+    title = "";
   }
 
   let note: string | undefined;

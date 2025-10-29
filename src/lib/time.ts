@@ -5,7 +5,7 @@ export const DEFAULT_TIME_ZONE =
   process.env.SCHOOL_TIMEZONE ?? "Africa/Abidjan";
 
 export const OPENING_HOURS = {
-  start: "07:00",
+  start: "08:00",
   end: "20:00",
 } as const;
 

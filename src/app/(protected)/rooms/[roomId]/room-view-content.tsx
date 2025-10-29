@@ -81,6 +81,8 @@ import type { ReservationInput } from "@/lib/validation";
 
 import { resolveDepartmentFromGroup, type ColorMode } from "@/lib/departments";
 
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
+
 
 
 const zone =
@@ -448,6 +450,10 @@ export function RoomViewContent({
 
     buildDefaultFormValues(room.id, initialDate),
 
+  );
+  const roomsSorted = useMemo(
+    () => sortRoomsByDisplayOrder(rooms),
+    [rooms],
   );
 
 
@@ -935,7 +941,7 @@ export function RoomViewContent({
 
           <ReservationForm
 
-            rooms={rooms}
+            rooms={roomsSorted}
 
             defaultValues={formDefaults}
 
@@ -1094,6 +1100,8 @@ export function RoomViewContent({
   );
 
 }
+
+
 
 
 

@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { differenceInMinutes, parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import {
   OPENING_HOURS,
   combineDateAndTime,
@@ -21,12 +22,12 @@ import {
   type ColorMode,
 } from "@/lib/departments";
 import type { ReservationEvent } from "./week-grid";
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
 
 const zone = process.env.NEXT_PUBLIC_SCHOOL_TIMEZONE ?? process.env.SCHOOL_TIMEZONE ?? "Africa/Abidjan";
 
 const HOUR_SLOT_MINUTES = 60;
-const MIN_COLUMN_WIDTH = 120;
-const LANE_HEIGHT = 48;
+const LANE_HEIGHT = 42;
 const MIN_TIMELINE_HEIGHT = 72;
 const CARD_TOP_OFFSET = 6;
 const CARD_MIN_HEIGHT = 32;
@@ -86,17 +87,19 @@ export function DayGrid({
   onSlotSelect,
   onReservationSelect,
 }: DayGridProps) {
+  const orderedRooms = sortRoomsByDisplayOrder(rooms);
   const dayStart = combineDateAndTime(date, OPENING_HOURS.start, zone);
   const dayEnd = combineDateAndTime(date, OPENING_HOURS.end, zone);
   const totalMinutes = Math.max(1, differenceInMinutes(dayEnd, dayStart));
   const hourSlots = generateSlots(dayStart, HOUR_SLOT_MINUTES, zone);
-  const timelineMinWidth = Math.max(hourSlots.length * MIN_COLUMN_WIDTH, 480);
+  const columnTemplate = `repeat(${hourSlots.length}, minmax(64px, 1fr))`;
+  const closingLabel = formatInTimeZone(dayEnd, zone, "HH'H'");
 
   const selectedSet = selectedRoomIds.length > 0 ? new Set(selectedRoomIds) : null;
   const filteredRooms = selectedSet
-    ? rooms.filter((room) => selectedSet.has(room.id))
-    : rooms;
-  const displayRooms = filteredRooms.length > 0 ? filteredRooms : rooms;
+    ? orderedRooms.filter((room) => selectedSet.has(room.id))
+    : orderedRooms;
+  const displayRooms = filteredRooms.length > 0 ? filteredRooms : orderedRooms;
 
   const reservationsForDay = reservations.filter((reservation) => {
     const startDate = parseISO(reservation.startTime);
@@ -115,31 +118,49 @@ export function DayGrid({
   return (
     <TooltipProvider>
       <section className="overflow-x-auto rounded-xl border bg-card/50 shadow-sm">
-        <div className="grid" style={{ gridTemplateColumns: `260px minmax(${timelineMinWidth}px, 1fr)` }}>
+        <div
+          className="grid w-full min-w-full md:min-w-[960px]"
+          style={{ gridTemplateColumns: "minmax(200px, 260px) minmax(0, 1fr)" }}
+        >
           <div className="sticky left-0 z-30 border-b border-r bg-card">
             <div className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Salle
             </div>
           </div>
-          <div className="relative border-b bg-card" style={{ minWidth: `${timelineMinWidth}px` }}>
-            <div className="flex h-10 items-center">
-              {hourSlots.map((slot) => (
+          <div className="relative min-w-0 border-b bg-card">
+            <div
+              className="grid h-10 items-center text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              style={{ gridTemplateColumns: columnTemplate }}
+            >
+              {hourSlots.map((slot, index) => (
                 <div
                   key={`header-label-${slot.start.toISOString()}`}
-                  className="flex-1 min-w-[120px] text-center text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  className={cn(
+                    "flex items-center text-center",
+                    index === hourSlots.length - 1
+                      ? "justify-start pl-2"
+                      : "justify-center",
+                  )}
                 >
                   {formatInTimeZone(slot.start, zone, "HH'H'")}
                 </div>
               ))}
             </div>
-            <div className="pointer-events-none absolute inset-0 flex">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center justify-end px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {closingLabel}
+            </div>
+            <div
+              className="pointer-events-none absolute inset-0 grid"
+              style={{ gridTemplateColumns: columnTemplate }}
+            >
               {hourSlots.map((slot, index) => (
-                <div key={`header-grid-${slot.start.toISOString()}`} className="relative flex-1 min-w-[120px]">
-                  <div className="absolute inset-y-0 left-0 border-l border-border/60" />
-                  {index === hourSlots.length - 1 && (
-                    <div className="absolute inset-y-0 right-0 border-l border-border/60" />
+                <div
+                  key={`header-grid-${slot.start.toISOString()}`}
+                  className={cn(
+                    "border-l border-border/60",
+                    index === hourSlots.length - 1 && "border-r",
                   )}
-                </div>
+                />
               ))}
             </div>
           </div>
@@ -163,9 +184,9 @@ export function DayGrid({
               <div key={room.id} className="contents">
                 <div
                   className="sticky left-0 z-20 border-b border-r bg-card"
-                  style={{ minHeight: `${timelineHeight}px` }}
+                  style={{ height: `${timelineHeight}px` }}
                 >
-                  <div className="flex h-full flex-col justify-center gap-1 px-4 py-3">
+                  <div className="flex h-full flex-col justify-center gap-1 px-4">
                     <span className="font-medium text-foreground">{room.name}</span>
                     {metaLabel && (
                       <span className="text-xs text-muted-foreground">{metaLabel}</span>
@@ -174,25 +195,24 @@ export function DayGrid({
                 </div>
 
                 <div
-                  className="relative border-b py-3 overflow-hidden"
+                  className="relative min-w-0 overflow-hidden border-b"
                   style={{
-                    minWidth: `${timelineMinWidth}px`,
                     height: `${timelineHeight}px`,
                   }}
                 >
-                  <div className="absolute inset-0 pointer-events-none">
-                    {hourSlots.map((slot) => {
-                      const offsetMinutes = differenceInMinutes(slot.start, dayStart);
-                      const leftPercent = (offsetMinutes / totalMinutes) * 100;
-                      return (
-                        <div
-                          key={`${room.id}-${slot.start.toISOString()}-grid`}
-                          className="absolute top-0 bottom-0 border-l border-border/70"
-                          style={{ left: `${leftPercent}%` }}
-                        />
-                      );
-                    })}
-                    <div className="absolute inset-y-0 right-0 border-l border-border/70" />
+                  <div
+                    className="pointer-events-none absolute inset-0 grid"
+                    style={{ gridTemplateColumns: columnTemplate }}
+                  >
+                    {hourSlots.map((slot, index) => (
+                      <div
+                        key={`${room.id}-${slot.start.toISOString()}-grid`}
+                        className={cn(
+                          "border-l border-border/70",
+                          index === hourSlots.length - 1 && "border-r",
+                        )}
+                      />
+                    ))}
                   </div>
 
                   {hourSlots.map((slot) => {
@@ -259,7 +279,6 @@ export function DayGrid({
                     );
 
                     const {
-                      displayTitle,
                       secondaryLabel,
                       departmentLabel,
                       participantLabel,
@@ -353,4 +372,6 @@ export function DayGrid({
     </TooltipProvider>
   );
 }
+
+
 

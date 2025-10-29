@@ -7,6 +7,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  OPENING_HOURS,
   SLOT_DURATION_MINUTES,
   combineDateAndTime,
   generateSlots,
@@ -26,10 +27,10 @@ import {
 
 const zone = process.env.NEXT_PUBLIC_SCHOOL_TIMEZONE ?? process.env.SCHOOL_TIMEZONE ?? "Africa/Abidjan";
 
-const START_MINUTES = 7 * 60;
+const START_MINUTES = 8 * 60;
 const END_MINUTES = 20 * 60;
 const TOTAL_MINUTES = END_MINUTES - START_MINUTES;
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 38;
 const FALLBACK_CARD_COLORS = OBJECTIVE_COLORS.other;
 
 export type ReservationEvent = {
@@ -121,9 +122,10 @@ export function WeekGrid({
       </div>
 
       <TooltipProvider>
-        <div className="grid grid-cols-[72px_repeat(7,minmax(0,1fr))] gap-2">
-          <div className="relative" style={{ height: containerHeight }}>
-            {generateSlots(combineDateAndTime(weekStart, "00:00", zone)).map(
+        <div className="overflow-x-auto rounded-xl border bg-card/50 p-3 shadow-sm sm:p-4">
+          <div className="grid min-w-full grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-2 md:min-w-[640px]">
+            <div className="relative" style={{ height: containerHeight }}>
+            {generateSlots(combineDateAndTime(weekStart, OPENING_HOURS.start, zone)).map(
               (slot, index) => {
                 const startLabel = toHHmm(slot.start, zone);
                 const isHour = startLabel.endsWith(":00");
@@ -142,12 +144,12 @@ export function WeekGrid({
                 );
               },
             )}
-          </div>
+            </div>
 
-          {days.map((day) => {
+            {days.map((day) => {
             const dayIso = format(day, "yyyy-MM-dd");
             const dayLabel = format(day, "EEE d", { locale: fr });
-            const slots = generateSlots(combineDateAndTime(dayIso, "00:00", zone));
+            const slots = generateSlots(combineDateAndTime(dayIso, OPENING_HOURS.start, zone));
 
             const dayReservations = reservations
               .filter((reservation) => {
@@ -210,7 +212,6 @@ export function WeekGrid({
                     zone,
                   )}`;
                   const {
-                    displayTitle,
                     secondaryLabel,
                     departmentLabel,
                     participantLabel,
@@ -298,10 +299,12 @@ export function WeekGrid({
                 })}
               </div>
             );
-          })}
+            })}
+          </div>
         </div>
       </TooltipProvider>
     </div>
   );
 }
+
 

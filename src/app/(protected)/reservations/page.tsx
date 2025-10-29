@@ -3,8 +3,9 @@ import { Suspense } from "react";
 import { addDays, parseISO, startOfWeek } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
-import { prisma } from "@/server/db/client";
 import { resolveDepartmentFromGroup } from "@/lib/departments";
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
+import { prisma } from "@/server/db/client";
 
 import { ReservationsContent } from "./reservations-content";
 import { ReservationsTable } from "./reservations-table";
@@ -34,7 +35,7 @@ function parseDateParam(value: string | undefined, fallbackIso: string) {
 export default async function ReservationsPage({
   searchParams = {},
 }: ReservationsPageProps) {
-  const rooms = await prisma.room.findMany({
+  const roomsRaw = await prisma.room.findMany({
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -44,6 +45,7 @@ export default async function ReservationsPage({
       capacity: true,
     },
   });
+  const rooms = sortRoomsByDisplayOrder(roomsRaw);
 
   const todayIso = formatInTimeZone(new Date(), zone, "yyyy-MM-dd");
   const roomIdSet = new Set(rooms.map((room) => room.id));

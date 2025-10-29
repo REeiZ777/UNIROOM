@@ -29,6 +29,7 @@ import {
   getReservationSecondaryLabel,
 } from "@/lib/reservations";
 import { resolveDepartmentFromGroup, type ColorMode } from "@/lib/departments";
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
 import { createReservation, deleteReservation } from "@/server/reservations/actions";
 import { toast } from "@/components/ui/toaster";
 
@@ -41,7 +42,7 @@ const uiStrings = {
   headline: "Reservations",
   subheadline:
     "Filtrez vos reservations par salle, par date ou via la recherche, puis naviguez de jour en jour.",
-  newReservation: "Nouvelle reservation",
+  newReservation: "Reserver une salle",
   editReservation: "Modifier la reservation",
   detailTitle: "Details de la reservation",
   detailRoom: "Salle",
@@ -194,10 +195,11 @@ function buildDefaultFormValues(
   date: string,
   selectedRoomIds: string[],
 ): ReservationInput {
+  const orderedRooms = sortRoomsByDisplayOrder(rooms);
   const baseStart = OPENING_HOURS.start;
   const startDate = combineDateAndTime(date, baseStart, zone);
   const suggestedEnd = toHHmm(addMinutes(startDate, SLOT_DURATION_MINUTES), zone);
-  const roomId = selectedRoomIds[0] ?? rooms[0]?.id ?? "";
+  const roomId = selectedRoomIds[0] ?? orderedRooms[0]?.id ?? "";
 
   return {
     roomId,
@@ -250,8 +252,11 @@ export function ReservationsContent({
   const [editingReservation, setEditingReservation] = useState<ReservationEvent | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailReservation, setDetailReservation] = useState<ReservationEvent | null>(null);
+  const roomsSorted = useMemo(() => sortRoomsByDisplayOrder(rooms), [rooms]);
+  const firstRoomId = roomsSorted[0]?.id ?? "";
+  const roomNameById = useMemo(() => new Map(roomsSorted.map((room) => [room.id, room.name ?? room.id])), [roomsSorted]);
   const [createDefaults, setCreateDefaults] = useState<ReservationInput>(() =>
-    buildDefaultFormValues(rooms, initialDate, initialRoomIds),
+    buildDefaultFormValues(roomsSorted, initialDate, initialRoomIds),
   );
   const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
   const [isDeletePending, startDeleteTransition] = useTransition();
@@ -278,8 +283,8 @@ export function ReservationsContent({
   }, [initialDate]);
 
   useEffect(() => {
-    setCreateDefaults(buildDefaultFormValues(rooms, selectedDate, selectedRoomIds));
-  }, [rooms, selectedDate, selectedRoomIds]);
+    setCreateDefaults(buildDefaultFormValues(roomsSorted, selectedDate, selectedRoomIds));
+  }, [roomsSorted, selectedDate, selectedRoomIds]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -501,12 +506,12 @@ export function ReservationsContent({
           addMinutes(combineDateAndTime(date, start, zone), slotLength),
           zone,
         ),
-        roomId: roomId ?? selectedRoomIds[0] ?? rooms[0]?.id ?? "",
+        roomId: roomId ?? selectedRoomIds[0] ?? firstRoomId,
       }));
       setFormDialogOpen(true);
       setDetailOpen(false);
     },
-    [handleDateChange, rooms, selectedRoomIds],
+    [handleDateChange, selectedRoomIds, firstRoomId],
   );
 
   const openCreateDialog = useCallback(() => {
@@ -605,7 +610,7 @@ export function ReservationsContent({
       reservation: Awaited<ReturnType<typeof createReservation>>,
       mode: "create" | "edit",
     ) => {
-      const roomName = rooms.find((room) => room.id === reservation.roomId)?.name;
+      const roomName = roomNameById.get(reservation.roomId) ?? reservation.room?.name ?? reservation.roomId;
       const serialised = toReservationEvent(reservation, roomName);
       setReservations((prev) => {
         const next = [...prev];
@@ -626,10 +631,10 @@ export function ReservationsContent({
       setIsDeleteConfirm(false);
       setRestoreDetailOnClose(false);
     },
-    [rooms],
+    [roomNameById],
   );
 
-  const defaultRoomId = selectedRoomIds[0] ?? rooms[0]?.id ?? "";
+  const defaultRoomId = selectedRoomIds[0] ?? firstRoomId;
   const formDialogTitle = formMode === "edit" ? uiStrings.editReservation : uiStrings.newReservation;
   const formDefaultValues =
     formMode === "edit" && editingReservation
@@ -706,11 +711,16 @@ const detailCapacityValue =
               {uiStrings.subheadline}
             </p>
           </div>
-          <Button onClick={openCreateDialog}>{uiStrings.newReservation}</Button>
+          <Button
+            onClick={openCreateDialog}
+            className="hidden md:inline-flex"
+          >
+            {uiStrings.newReservation}
+          </Button>
         </header>
 
         <FilterBar
-          rooms={rooms}
+          rooms={roomsSorted}
           selectedRoomIds={selectedRoomIds}
           onRoomChange={handleRoomChange}
           selectedDate={selectedDate}
@@ -735,7 +745,7 @@ const detailCapacityValue =
               <DialogTitle>{formDialogTitle}</DialogTitle>
             </DialogHeader>
             <ReservationForm
-              rooms={rooms}
+              rooms={roomsSorted}
               defaultValues={formDefaultValues}
               reservationId={reservationIdForForm}
               mode={formMode}
@@ -879,7 +889,7 @@ const detailCapacityValue =
 
         <DayGrid
           date={selectedDate}
-          rooms={rooms}
+          rooms={roomsSorted}
           reservations={filteredReservations}
           selectedRoomIds={selectedRoomIds}
           colorMode={colorMode}
@@ -917,7 +927,7 @@ const detailCapacityValue =
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{uiStrings.roomPlaceholder}</SelectItem>
-                    {rooms.map((room) => (
+                    {roomsSorted.map((room) => (
                       <SelectItem key={`table-room-${room.id}`} value={room.id}>
                         {room.name}
                       </SelectItem>
@@ -981,6 +991,27 @@ const detailCapacityValue =
     </ReservationInteractionsProvider>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

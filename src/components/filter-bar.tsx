@@ -17,6 +17,7 @@ import {
 import { DEFAULT_TIME_ZONE } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { DEPARTMENTS, OBJECTIVE_COLORS, type ColorMode } from "@/lib/departments";
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
 
 const uiStrings = {
   roomLabel: "Salle",
@@ -68,6 +69,10 @@ export function FilterBar({
 }: FilterBarProps) {
   const [roomPopoverOpen, setRoomPopoverOpen] = useState(false);
   const showReset = Boolean(onDateReset);
+  const orderedRooms = useMemo(
+    () => sortRoomsByDisplayOrder(rooms),
+    [rooms],
+  );
 
   const selectedDateObject = useMemo(
     () => (selectedDate ? parseISO(selectedDate) : new Date()),
@@ -87,11 +92,11 @@ export function FilterBar({
 
   const selectedRooms = useMemo(() => {
     if (selectedRoomIds.length === 0) {
-      return rooms;
+      return orderedRooms;
     }
     const selected = new Set(selectedRoomIds);
-    return rooms.filter((room) => selected.has(room.id));
-  }, [rooms, selectedRoomIds]);
+    return orderedRooms.filter((room) => selected.has(room.id));
+  }, [orderedRooms, selectedRoomIds]);
 
   const roomLabel =
     selectedRoomIds.length === 0
@@ -128,7 +133,7 @@ export function FilterBar({
 
   const handleToggleRoom = (roomId: string) => {
     if (selectedRoomIds.length === 0) {
-      const next = rooms
+      const next = orderedRooms
         .filter((room) => room.id !== roomId)
         .map((room) => room.id);
       onRoomChange(next);
@@ -155,7 +160,7 @@ export function FilterBar({
   return (
     <section
       aria-labelledby="filters-heading"
-      className="flex flex-col gap-4 rounded-xl border bg-card/50 p-4 shadow-sm"
+      className="flex flex-col gap-4 rounded-xl border bg-card/50 p-3 shadow-sm sm:p-4"
     >
       <div
         className={cn(
@@ -174,12 +179,12 @@ export function FilterBar({
                 type="button"
                 variant="outline"
                 aria-label={uiStrings.roomLabel}
-                className="justify-between"
+                className="w-full justify-between"
               >
                 <span className="truncate text-sm">{roomLabel}</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-0" align="start">
+            <PopoverContent className="w-[min(16rem,85vw)] p-0" align="start">
               <div className="flex flex-col gap-2 p-2">
                 <Button
                   type="button"
@@ -193,7 +198,7 @@ export function FilterBar({
                   {uiStrings.roomClear}
                 </Button>
                 <div className="max-h-64 overflow-y-auto">
-                  {rooms.map((room) => {
+                  {orderedRooms.map((room) => {
                     const checked =
                       selectedRoomIds.length === 0 ||
                       selectedRoomIds.includes(room.id);
@@ -227,10 +232,10 @@ export function FilterBar({
           </label>
           <div
             className={cn(
-              "grid items-center gap-2",
+              "grid w-full items-center gap-2",
               showReset
-                ? "grid-cols-[auto_minmax(0,1fr)_auto_auto]"
-                : "grid-cols-[auto_minmax(0,1fr)_auto]",
+                ? "grid-cols-[minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]"
+                : "grid-cols-[minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]",
             )}
           >
             <Button
@@ -248,7 +253,7 @@ export function FilterBar({
                 <Button
                   type="button"
                   variant="outline"
-                  className="min-w-[14rem] justify-start"
+                  className="w-full justify-start sm:min-w-[14rem]"
                   aria-label={uiStrings.dateButtonAria}
                 >
                   <CalendarIcon aria-hidden className="mr-2 size-4" />
@@ -358,20 +363,20 @@ export function FilterBar({
         </fieldset>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 text-xs text-muted-foreground [&>*]:shrink-0">
         <span
           id="filters-heading"
-          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          className="font-semibold uppercase tracking-wide text-muted-foreground"
         >
           {uiStrings.filtersTitle}
         </span>
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="whitespace-nowrap">
           {badgeLabel}
         </Badge>
-        <Badge variant="secondary" className="text-xs capitalize">
+        <Badge variant="secondary" className="whitespace-nowrap capitalize">
           {formattedDate}
         </Badge>
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="whitespace-nowrap">
           {`${uiStrings.colorModeLabel}: ${colorModeDisplay}`}
         </Badge>
       </div>

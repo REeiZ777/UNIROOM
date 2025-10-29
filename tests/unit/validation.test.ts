@@ -68,11 +68,10 @@ describe("sanitizeReservationInput", () => {
     expect(sanitized.note).toBeUndefined();
   });
 
-  it("throws when sanitization empties the title", () => {
+  it("allows empty titles during sanitization", () => {
     const payload = buildBaseInput({ title: " \n " });
-    expect(() => sanitizeReservationInput(payload)).toThrowError(
-      "Le titre ne peut pas Ãªtre vide.",
-    );
+    const sanitized = sanitizeReservationInput(payload);
+    expect(sanitized.title).toBe("");
   });
 
   it("preserves valid optional note content", () => {

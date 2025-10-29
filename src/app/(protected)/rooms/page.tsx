@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { sortRoomsByDisplayOrder } from "@/lib/rooms";
 import { prisma } from "@/server/db/client";
 
 const uiStrings = {
@@ -26,7 +27,7 @@ const uiStrings = {
 
 export default async function RoomsPage() {
   const now = new Date();
-  const [rooms, activeReservations] = await Promise.all([
+  const [roomsRaw, activeReservations] = await Promise.all([
     prisma.room.findMany({
       orderBy: { name: "asc" },
       select: {
@@ -46,6 +47,8 @@ export default async function RoomsPage() {
       select: { roomId: true },
     }),
   ]);
+
+  const rooms = sortRoomsByDisplayOrder(roomsRaw);
 
   const occupiedRoomIds = new Set(
     activeReservations.map((reservation) => reservation.roomId),

@@ -2,7 +2,6 @@
 import { fr } from "date-fns/locale";
 import { formatInTimeZone } from "date-fns-tz";
 
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -156,9 +155,6 @@ export default async function DashboardPage() {
                 {todaysReservations.length > 1 ? "s" : ""}
               </CardDescription>
             </div>
-            <Badge variant="secondary">
-              {todaysReservations.length}/{totalRooms}
-            </Badge>
           </CardHeader>
           <CardContent className="space-y-3">
             {todaysReservations.length === 0 ? (

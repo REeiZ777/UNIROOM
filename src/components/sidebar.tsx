@@ -2,13 +2,7 @@
 
 import type { ElementType } from "react";
 import Link from "next/link";
-import {
-  CalendarDaysIcon,
-  HistoryIcon,
-  HomeIcon,
-  Settings2Icon,
-  UsersIcon,
-} from "lucide-react";
+import { CalendarDaysIcon, HistoryIcon, HomeIcon, UsersIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -21,7 +15,6 @@ const uiStrings = {
   reservations: "R\u00E9servations",
   history: "Historique",
   rooms: "Salles",
-  settings: "Param\u00E8tres",
 } as const;
 
 type NavItem = {
@@ -43,7 +36,6 @@ const navItems: NavItem[] = [
     label: uiStrings.history,
   },
   { icon: UsersIcon, href: "/rooms", label: uiStrings.rooms },
-  { icon: Settings2Icon, href: "/settings", label: uiStrings.settings },
 ];
 
 type SidebarProps = {
